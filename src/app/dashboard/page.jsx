@@ -14,6 +14,7 @@ import TransactionForm from '../../components/forms/TransactionForm';
 import ExpensePieChart from '../../components/charts/ExpensePieChart';
 import TransactionLineChart from '../../components/charts/TransactionLineChart';
 import FinancialAreaChart from '../../components/charts/FinancialAreaChart';
+import DemoNotifications from '../../components/dashboard/DemoNotifications';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
@@ -301,6 +302,9 @@ export default function DashboardPage() {
             </div>
           )}
         </Card>
+        
+        {/* Panel de demostración de notificaciones */}
+        <DemoNotifications />
       </div>
     </motion.div>
   );
