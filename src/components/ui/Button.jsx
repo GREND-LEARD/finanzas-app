@@ -8,6 +8,7 @@ const variants = {
   warning: 'bg-yellow-600 text-white hover:bg-yellow-500',
   outline: 'bg-transparent border border-[#00E676] text-[#00E676] hover:bg-gray-800',
   dark: 'bg-gray-800 text-white border border-gray-700 hover:bg-gray-700',
+  text: 'bg-transparent text-gray-300 hover:text-white',
 };
 
 const sizes = {
@@ -24,9 +25,12 @@ export default function Button({
   size = 'md',
   disabled = false,
   isLoading = false,
+  leftIcon = null,
   onClick,
   ...props
 }) {
+  const buttonProps = { ...props };
+
   return (
     <button
       type={type}
@@ -40,7 +44,7 @@ export default function Button({
       `}
       disabled={disabled || isLoading}
       onClick={onClick}
-      {...props}
+      {...buttonProps}
     >
       {isLoading ? (
         <div className="flex items-center justify-center">
@@ -62,7 +66,10 @@ export default function Button({
           Cargando...
         </div>
       ) : (
-        children
+        <div className="flex items-center justify-center">
+          {leftIcon && <span className="mr-2">{leftIcon}</span>}
+          {children}
+        </div>
       )}
     </button>
   );
