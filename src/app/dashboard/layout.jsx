@@ -1,169 +1,171 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore } from '../../lib/store/auth-store';
+import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  FaChartLine, 
-  FaExchangeAlt, 
-  FaChartBar, 
-  FaRegListAlt,
-  FaBullseye,
-  FaCoins,
-  FaSignOutAlt,
-  FaWallet,
-  FaBell
-} from 'react-icons/fa';
-import NotificationBadge from '../../components/ui/NotificationBadge';
-import NotificationPanel from '../../components/ui/NotificationPanel';
+import { FaHome, FaChartLine, FaWallet, FaRegCalendarAlt, FaCog, FaTags, FaSignOutAlt, FaLaptop, FaBullseye, FaChartBar } from 'react-icons/fa';
+import { useAuthStore } from '../../lib/store/auth-store';
+import ProtectedRoute from '../../components/ui/ProtectedRoute';
 
 export default function DashboardLayout({ children }) {
-  const router = useRouter();
+  const [showSidebar, setShowSidebar] = useState(true);
   const pathname = usePathname();
-  const { user, checkAuth, signOut } = useAuthStore();
-
-  useEffect(() => {
-    // Verificar si el usuario está autenticado
-    checkAuth();
-    
-    // Si no hay usuario, redirigir al login
-    if (!user) {
-      router.push('/auth/login');
-    }
-  }, [user, checkAuth, router]);
-
-  // Si no hay usuario, mostrar un estado de carga
-  if (!user) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676]"></div>
-      </div>
-    );
-  }
-
-  // Función para comprobar si el enlace actual está activo
-  const isActive = (path) => {
-    return pathname === path || pathname?.startsWith(path + '/');
-  };
-
-  // Lista de enlaces de navegación
-  const navLinks = [
+  const { signOut, user } = useAuthStore();
+  
+  const navItems = [
     {
+      title: 'Dashboard',
       href: '/dashboard',
-      text: 'Dashboard',
-      icon: <FaChartLine className="h-5 w-5" />
+      icon: <FaHome size={18} />,
     },
     {
+      title: 'Transacciones',
       href: '/dashboard/transactions',
-      text: 'Transacciones',
-      icon: <FaExchangeAlt className="h-5 w-5" />
+      icon: <FaWallet size={18} />,
     },
     {
+      title: 'Categorías',
+      href: '/dashboard/categories',
+      icon: <FaTags size={18} />,
+    },
+    {
+      title: 'Presupuestos',
       href: '/dashboard/budgets',
-      text: 'Presupuestos',
-      icon: <FaCoins className="h-5 w-5" />
+      icon: <FaRegCalendarAlt size={18} />,
     },
     {
+      title: 'Metas Financieras',
       href: '/dashboard/goals',
-      text: 'Metas',
-      icon: <FaBullseye className="h-5 w-5" />
+      icon: <FaBullseye size={18} />,
     },
     {
+      title: 'Análisis Financiero',
       href: '/dashboard/analysis',
-      text: 'Análisis',
-      icon: <FaChartBar className="h-5 w-5" />
+      icon: <FaChartBar size={18} />,
     },
     {
-      href: '/dashboard/reports',
-      text: 'Reportes',
-      icon: <FaRegListAlt className="h-5 w-5" />
+      title: 'Configuración',
+      href: '/dashboard/settings',
+      icon: <FaCog size={18} />,
     },
-    {
-      href: '/dashboard/notifications',
-      text: 'Notificaciones',
-      icon: <FaBell className="h-5 w-5" />
-    }
   ];
-
+  
+  const toggleSidebar = () => {
+    setShowSidebar(!showSidebar);
+  };
+  
+  const handleSignOut = async () => {
+    await signOut();
+  };
+  
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Panel de notificaciones (siempre presente, pero visible/oculto según estado) */}
-      <NotificationPanel />
-      
-      {/* Navbar */}
-      <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="text-xl font-bold flex items-center">
-              <span className="inline-block mr-2 text-[#00E676]">
-                <FaWallet className="h-6 w-6" />
-              </span>
-              Finanzas <span className="text-xs bg-gray-700 px-2 py-1 rounded ml-1">App</span>
-            </Link>
-          </div>
-
-          <nav className="hidden md:flex items-center space-x-4">
-            {navLinks.slice(0, 6).map((link) => (
-              <Link 
-                key={link.href}
-                href={link.href} 
-                className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  isActive(link.href) 
-                    ? 'bg-[#00E676] bg-opacity-20 text-[#00E676]' 
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
+    <ProtectedRoute>
+      <div className="flex h-screen bg-gray-900 text-gray-100">
+        {/* Sidebar */}
+        <aside
+          className={`bg-gray-800 ${
+            showSidebar ? 'w-64' : 'w-20'
+          } transition-all duration-300 ease-in-out flex flex-col justify-between`}
+        >
+          <div>
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h2 className={`text-xl font-semibold text-white ${!showSidebar && 'hidden'}`}>
+                Finanzas App
+              </h2>
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-700"
               >
-                {link.icon}
-                {link.text}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center">
-            <div className="flex items-center gap-3">
-              {/* Badge de notificaciones */}
-              <NotificationBadge />
-              
-              <div className="w-8 h-8 rounded-full bg-[#00E676] flex items-center justify-center text-gray-900 font-medium">
-                {user?.email?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-              
-              <button 
-                onClick={signOut}
-                className="text-gray-300 hover:text-white text-sm flex items-center gap-2 px-3 py-1.5 rounded hover:bg-gray-700 transition-colors"
-              >
-                <FaSignOutAlt className="h-4 w-4" />
-                Salir
+                {showSidebar ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                    />
+                  </svg>
+                )}
               </button>
             </div>
+            <nav className="mt-6">
+              <ul className="space-y-2 px-4">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-gray-700 text-green-400'
+                            : 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-lg">{item.icon}</span>
+                        <span className={`ml-3 ${!showSidebar && 'hidden'}`}>{item.title}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
           </div>
-        </div>
-      </header>
-
-      {/* Menú móvil */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-10">
-        <div className="grid grid-cols-6 gap-1 p-1">
-          {navLinks.slice(0, 6).map((link) => (
-            <Link 
-              key={link.href}
-              href={link.href} 
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs ${
-                isActive(link.href)
-                  ? 'text-[#00E676]' 
-                  : 'text-gray-400 hover:text-white'
+          
+          <div className="p-4 border-t border-gray-700">
+            <div className={`flex items-center mb-4 ${!showSidebar && 'justify-center'}`}>
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </div>
+              {showSidebar && (
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-white truncate">{user?.email || 'Usuario'}</p>
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={handleSignOut}
+              className={`flex items-center px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-700 w-full ${
+                !showSidebar && 'justify-center'
               }`}
             >
-              {link.icon}
-              <span className="mt-1">{link.text}</span>
-            </Link>
-          ))}
-        </div>
+              <FaSignOutAlt size={18} />
+              <span className={`ml-3 ${!showSidebar && 'hidden'}`}>Cerrar sesión</span>
+            </button>
+          </div>
+        </aside>
+        
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 py-8">
+            {children}
+          </div>
+        </main>
       </div>
-
-      <main className="container mx-auto px-4 py-6 mb-16 md:mb-0">
-        {children}
-      </main>
-    </div>
+    </ProtectedRoute>
   );
 } 

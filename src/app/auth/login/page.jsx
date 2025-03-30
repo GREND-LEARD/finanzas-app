@@ -10,11 +10,13 @@ import { useAuthStore } from '../../../lib/store/auth-store';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import { supabase } from '../../../lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
-  const { signIn, isLoading } = useAuthStore();
+  const [debugInfo, setDebugInfo] = useState('');
+  const { signIn, isLoading, error: authError } = useAuthStore();
   
   const {
     register,
@@ -26,13 +28,87 @@ export default function LoginPage() {
   
   const onSubmit = async (data) => {
     setError('');
+    setDebugInfo('Iniciando proceso de login...');
+    
     try {
+      console.log('Intentando iniciar sesión con:', data.email);
+      
+      // Intentar inicio de sesión directamente con Supabase para depuración
+      const directResult = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      
+      setDebugInfo(prev => prev + '\nRespuesta directa de Supabase: ' + 
+                   (directResult.error ? 
+                    `Error: ${directResult.error.message}` : 
+                    `Éxito. Usuario: ${directResult.data?.user?.email || 'No disponible'}`));
+      
+      if (directResult.error) {
+        setError(`Error directo: ${directResult.error.message}`);
+        return;
+      }
+      
+      // Si el inicio de sesión directo funciona, almacenar manualmente en localStorage
+      if (directResult.data?.session) {
+        // Forzar almacenamiento manual de sesión
+        try {
+          // Guardar en el formato que espera Supabase
+          const sessionData = {
+            access_token: directResult.data.session.access_token,
+            refresh_token: directResult.data.session.refresh_token,
+            expires_at: directResult.data.session.expires_at,
+            expires_in: directResult.data.session.expires_in,
+            token_type: 'bearer',
+            user: directResult.data.user
+          };
+          
+          localStorage.setItem('finanzas-app-auth-token', JSON.stringify(sessionData));
+          setDebugInfo(prev => prev + '\nSesión guardada manualmente en localStorage con formato correcto.');
+          
+          // Esta línea es importante: actualizar manualmente el estado de usuario
+          // para que ProtectedRoute funcione correctamente
+          window.dispatchEvent(new Event('supabase.auth.signin'));
+        } catch (storageError) {
+          console.error('Error al guardar en localStorage:', storageError);
+          setDebugInfo(prev => prev + '\nError al guardar en localStorage: ' + storageError.message);
+        }
+      }
+      
+      // Si el inicio de sesión directo funciona, usar el store para consistencia
       const result = await signIn(data.email, data.password);
-      if (result) {
-        router.push('/dashboard');
+      
+      setDebugInfo(prev => prev + '\nRespuesta del store: ' + 
+                   (result ? `Éxito. Redirigiendo...` : `Fallo. Error: ${authError || 'Desconocido'}`));
+      
+      // Si tenemos datos de usuario, redirigir aunque haya problemas con el store
+      if (result || directResult.data?.user) {
+        setDebugInfo(prev => prev + '\nRedirigiendo al dashboard...');
+        
+        // Usar timeout para asegurar que los datos se guarden antes de redirigir
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
+      } else {
+        setError(authError || 'No se pudo iniciar sesión. Verifica tus credenciales.');
       }
     } catch (err) {
-      setError('Ha ocurrido un error al iniciar sesión');
+      console.error('Error completo en login:', err);
+      setDebugInfo(prev => prev + '\nExcepción capturada: ' + err.message);
+      setError(err.message || 'Ha ocurrido un error al iniciar sesión');
+    }
+  };
+  
+  // Función para verificar la sesión actual
+  const checkCurrentSession = async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      setDebugInfo(`Sesión actual: ${data.session ? 'Activa' : 'Inactiva'}`);
+      if (data.session) {
+        setDebugInfo(prev => prev + `\nUsuario en sesión: ${data.session.user.email}`);
+      }
+    } catch (error) {
+      setDebugInfo(`Error al verificar sesión: ${error.message}`);
     }
   };
   
@@ -107,6 +183,22 @@ export default function LoginPage() {
             </div>
           </form>
         </Card>
+        
+        {/* Sección de depuración */}
+        <div className="mt-4">
+          <button 
+            onClick={checkCurrentSession} 
+            className="text-xs text-gray-500 hover:text-gray-400"
+          >
+            Verificar estado de sesión
+          </button>
+          
+          {debugInfo && (
+            <div className="mt-2 p-3 bg-gray-800 rounded text-xs text-gray-400 font-mono whitespace-pre-wrap">
+              {debugInfo}
+            </div>
+          )}
+        </div>
         
         <div className="mt-6 text-center">
           <Link href="/" className="text-gray-400 hover:text-gray-300 text-sm flex items-center justify-center">

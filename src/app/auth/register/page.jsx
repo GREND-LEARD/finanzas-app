@@ -10,11 +10,13 @@ import { useAuthStore } from '../../../lib/store/auth-store';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
+import { supabase } from '../../../lib/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
   const { signUp, isLoading } = useAuthStore();
   
   const {
@@ -28,17 +30,49 @@ export default function RegisterPage() {
   const onSubmit = async (data) => {
     setError('');
     setSuccess('');
+    setDebugInfo('Iniciando proceso de registro...');
     
     try {
-      const result = await signUp(data.email, data.password);
+      console.log('Intentando registrar usuario:', data.email);
+      
+      // Intentar registro directo con Supabase para depuración
+      const directResult = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name
+          }
+        }
+      });
+      
+      setDebugInfo(prev => prev + '\nRespuesta directa de Supabase: ' + 
+                   (directResult.error ? 
+                   `Error: ${directResult.error.message}` : 
+                   `Éxito. Usuario: ${directResult.data?.user?.email || 'No disponible'}`));
+      
+      if (directResult.error) {
+        setError(`Error directo: ${directResult.error.message}`);
+        return;
+      }
+      
+      // Usar el store para consistencia en la aplicación
+      const result = await signUp(data.email, data.password, data.name);
+      
       if (result) {
         setSuccess('Registro exitoso. Por favor verifica tu correo electrónico para confirmar tu cuenta.');
+        setDebugInfo(prev => prev + '\nRegistro exitoso a través del store.');
         setTimeout(() => {
           router.push('/auth/login');
         }, 3000);
+      } else {
+        setError('Error desconocido en el registro');
+        setDebugInfo(prev => prev + '\nRegistro falló a través del store. Sin mensaje de error específico.');
       }
     } catch (err) {
-      setError('Ha ocurrido un error al registrarse');
+      console.error('Error completo en registro:', err);
+      setDebugInfo(prev => prev + '\nExcepción capturada: ' + err.message);
+      setError(err.message || 'Ha ocurrido un error al registrarse');
     }
   };
   
@@ -114,6 +148,13 @@ export default function RegisterPage() {
             </div>
           </form>
         </Card>
+        
+        {/* Sección de depuración */}
+        {debugInfo && (
+          <div className="mt-4 p-3 bg-gray-800 rounded text-xs text-gray-400 font-mono whitespace-pre-wrap">
+            {debugInfo}
+          </div>
+        )}
         
         <div className="mt-6 text-center">
           <Link href="/" className="text-gray-400 hover:text-gray-300 text-sm flex items-center justify-center">
