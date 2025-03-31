@@ -108,9 +108,9 @@ export const useAuthStore = create((set, get) => ({
         password,
         options: {
           data: {
-            name: name || '',
-            full_name: name || ''
-          }
+            name
+          },
+          emailRedirectTo: `${window.location.origin}/auth/login`, // URL a la que se redirigirá después de verificar
         }
       });
       
@@ -133,6 +133,9 @@ export const useAuthStore = create((set, get) => ({
         set({ isLoading: false });
       }
       
+      console.log('Registro exitoso, correo de verificación enviado');
+      
+      // Consideramos el registro exitoso incluso si el correo no ha sido verificado aún
       return data;
     } catch (error) {
       console.error('Error en registro:', error);
@@ -260,3 +263,31 @@ export const useAuthStore = create((set, get) => ({
     }
   }
 })); 
+
+export async function register(email, password, name) {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name
+        },
+        emailRedirectTo: `${window.location.origin}/auth/login`, // URL a la que se redirigirá después de verificar
+      }
+    });
+
+    if (error) {
+      console.error('Error en registro:', error);
+      throw error;
+    }
+
+    console.log('Registro exitoso, correo de verificación enviado');
+    
+    // Consideramos el registro exitoso incluso si el correo no ha sido verificado aún
+    return data;
+  } catch (err) {
+    console.error('Error al registrar usuario:', err);
+    throw err;
+  }
+} 
