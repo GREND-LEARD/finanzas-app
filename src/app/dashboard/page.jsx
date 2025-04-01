@@ -3,7 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../lib/store/auth-store';
-import { useTransactions } from '../../lib/hooks/use-transactions';
+import {
+  useTransactions,
+  useAddTransaction,
+  useUpdateTransaction,
+  useDeleteTransaction
+} from '../../lib/hooks/use-transactions';
 import { useCategories } from '../../lib/hooks/use-categories';
 import { formatCurrency } from '../../lib/utils/format';
 import TransactionsTable from '../../components/dashboard/TransactionsTable';
@@ -20,7 +25,7 @@ import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, checkAuth } = useAuthStore();
+  const { user } = useAuthStore();
   const [showForm, setShowForm] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [chartView, setChartView] = useState('line'); // Opciones: 'line', 'area', 'pie'
@@ -35,6 +40,14 @@ export default function DashboardPage() {
     data: categories = [], 
     isLoading: categoriesLoading 
   } = useCategories();
+
+  // Inicializar los hooks de mutación
+  const addTransactionMutation = useAddTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
+  const deleteTransactionMutation = useDeleteTransaction();
+  
+  // Combinar estados de carga de mutaciones para el formulario
+  const isMutating = addTransactionMutation.isPending || updateTransactionMutation.isPending;
   
   // Calcular estadísticas
   const statistics = React.useMemo(() => {
@@ -119,23 +132,43 @@ export default function DashboardPage() {
       .slice(-30); // Mostrar solo los últimos 30 días
   }, [transactions]);
   
-  useEffect(() => {
-    checkAuth();
-    if (!user) {
-      router.push('/auth/login');
-    }
-  }, [user, checkAuth, router]);
-  
-  const handleAddTransaction = async (data) => {
+  const handleSaveTransaction = async (formData) => {
     try {
-      // Aquí iría la lógica de agregar transacción
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      refetchTransactions();
-      setShowForm(false);
-      setSelectedTransaction(null);
+      if (selectedTransaction) {
+        // Actualizar transacción existente
+        await updateTransactionMutation.mutateAsync(
+          { id: selectedTransaction.id, ...formData },
+          {
+            onSuccess: () => {
+              console.log('Transacción actualizada con éxito');
+              setShowForm(false);
+              setSelectedTransaction(null);
+              // No es necesario refetch aquí, invalidateQueries lo hace
+            },
+            onError: (error) => {
+              console.error('Error al actualizar transacción:', error);
+              // TODO: Mostrar error al usuario
+            },
+          }
+        );
+      } else {
+        // Crear nueva transacción
+        await addTransactionMutation.mutateAsync(formData, {
+          onSuccess: () => {
+            console.log('Transacción creada con éxito');
+            setShowForm(false);
+            // No es necesario refetch aquí, invalidateQueries lo hace
+          },
+          onError: (error) => {
+            console.error('Error al crear transacción:', error);
+            // TODO: Mostrar error al usuario
+          },
+        });
+      }
     } catch (error) {
-      console.error('Error al agregar transacción:', error);
+      // mutateAsync lanza errores si la mutación falla, 
+      // ya los manejamos en onError, pero podemos tener un catch general.
+      console.error('Error general al guardar transacción:', error);
     }
   };
   
@@ -147,12 +180,18 @@ export default function DashboardPage() {
   const handleDeleteTransaction = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta transacción?')) {
       try {
-        // Aquí iría la lógica de eliminar transacción
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        refetchTransactions();
+        await deleteTransactionMutation.mutateAsync(id, {
+          onSuccess: () => {
+            console.log('Transacción eliminada con éxito');
+             // No es necesario refetch aquí, invalidateQueries lo hace
+          },
+          onError: (error) => {
+            console.error('Error al eliminar transacción:', error);
+            // TODO: Mostrar error al usuario
+          },
+        });
       } catch (error) {
-        console.error('Error al eliminar transacción:', error);
+        console.error('Error general al eliminar transacción:', error);
       }
     }
   };
@@ -278,9 +317,9 @@ export default function DashboardPage() {
                 {selectedTransaction ? 'Editar' : 'Agregar'} Transacción
               </h4>
               <TransactionForm
-                onSubmit={handleAddTransaction}
+                onSave={handleSaveTransaction}
                 categories={categories}
-                isLoading={false}
+                isLoading={isMutating}
                 isEditing={!!selectedTransaction}
                 defaultValues={selectedTransaction || {}}
               />
@@ -291,7 +330,7 @@ export default function DashboardPage() {
             transactions={transactions.slice(0, 5)}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
-            isLoading={transactionsLoading}
+            isLoading={transactionsLoading || deleteTransactionMutation.isPending}
           />
           
           {transactions.length > 5 && (
