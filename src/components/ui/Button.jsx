@@ -27,10 +27,9 @@ export default function Button({
   isLoading = false,
   leftIcon = null,
   onClick,
+  rightIcon = null,
   ...props
 }) {
-  const buttonProps = { ...props };
-
   return (
     <button
       type={type}
@@ -44,7 +43,7 @@ export default function Button({
       `}
       disabled={disabled || isLoading}
       onClick={onClick}
-      {...buttonProps}
+      {...props}
     >
       {isLoading ? (
         <div className="flex items-center justify-center">
@@ -69,6 +68,7 @@ export default function Button({
         <div className="flex items-center justify-center">
           {leftIcon && <span className="mr-2">{leftIcon}</span>}
           {children}
+          {rightIcon && <span className="ml-2">{rightIcon}</span>}
         </div>
       )}
     </button>

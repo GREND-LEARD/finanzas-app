@@ -26,9 +26,16 @@ export default function IconSelector({ selected, onSelect, readOnly = false, col
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Obtener el componente icono ANTES del return
+  const SelectedIconComponent = getIconComponent(selected, 
+    readOnly 
+      ? { className: 'w-5 h-5', style: color ? { color } : {} } 
+      : { className: 'w-5 h-5 text-[#00E676]' }
+  );
+
   // Si es de solo lectura, solo mostrar el icono seleccionado
   if (readOnly) {
-    return getIconComponent(selected, { className: 'w-5 h-5', style: color ? { color } : {} });
+    return SelectedIconComponent; // Renderizar el componente guardado
   }
   
   // Filtrar iconos según el término de búsqueda
@@ -46,7 +53,7 @@ export default function IconSelector({ selected, onSelect, readOnly = false, col
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          {getIconComponent(selected, { className: 'w-5 h-5 text-[#00E676]' })}
+          {SelectedIconComponent} {/* Renderizar el componente guardado */}
           <span className="text-gray-300">{selected}</span>
         </div>
         {isOpen ? <FaChevronUp /> : <FaChevronDown />}
@@ -68,24 +75,28 @@ export default function IconSelector({ selected, onSelect, readOnly = false, col
           </div>
           
           <div className="grid grid-cols-6 gap-2">
-            {filteredIcons.map(iconName => (
-              <button
-                key={iconName}
-                type="button"
-                onClick={() => {
-                  onSelect(iconName);
-                  setIsOpen(false);
-                }}
-                className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
-                  selected === iconName
-                    ? 'bg-[#00E676] bg-opacity-20 text-[#00E676]'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-                title={iconName}
-              >
-                {getIconComponent(iconName, { className: 'w-5 h-5' })}
-              </button>
-            ))}
+            {filteredIcons.map(iconName => {
+              // Obtener el componente para cada icono del grid
+              const IconInGrid = getIconComponent(iconName, { className: 'w-5 h-5' });
+              return (
+                <button
+                  key={iconName}
+                  type="button"
+                  onClick={() => {
+                    onSelect(iconName);
+                    setIsOpen(false);
+                  }}
+                  className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
+                    selected === iconName
+                      ? 'bg-[#00E676] bg-opacity-20 text-[#00E676]'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                  title={iconName}
+                >
+                  {IconInGrid} {/* Renderizar el componente guardado */}
+                </button>
+              );
+            })}
             
             {filteredIcons.length === 0 && (
               <div className="col-span-6 py-4 text-center text-gray-400">

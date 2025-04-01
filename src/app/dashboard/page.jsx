@@ -22,6 +22,7 @@ import FinancialAreaChart from '../../components/charts/FinancialAreaChart';
 import DemoNotifications from '../../components/dashboard/DemoNotifications';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -133,43 +134,34 @@ export default function DashboardPage() {
   }, [transactions]);
   
   const handleSaveTransaction = async (formData) => {
-    try {
-      if (selectedTransaction) {
-        // Actualizar transacción existente
-        await updateTransactionMutation.mutateAsync(
-          { id: selectedTransaction.id, ...formData },
-          {
-            onSuccess: () => {
-              console.log('Transacción actualizada con éxito');
-              setShowForm(false);
-              setSelectedTransaction(null);
-              // No es necesario refetch aquí, invalidateQueries lo hace
-            },
-            onError: (error) => {
-              console.error('Error al actualizar transacción:', error);
-              // TODO: Mostrar error al usuario
-            },
-          }
-        );
-      } else {
-        // Crear nueva transacción
-        await addTransactionMutation.mutateAsync(formData, {
-          onSuccess: () => {
-            console.log('Transacción creada con éxito');
-            setShowForm(false);
-            // No es necesario refetch aquí, invalidateQueries lo hace
-          },
-          onError: (error) => {
-            console.error('Error al crear transacción:', error);
-            // TODO: Mostrar error al usuario
-          },
-        });
+    // Usar una promesa para manejar los toasts de carga/éxito/error
+    const promise = new Promise(async (resolve, reject) => {
+      try {
+        if (selectedTransaction) {
+          // Actualizar
+          await updateTransactionMutation.mutateAsync({ id: selectedTransaction.id, ...formData });
+          resolve('Transacción actualizada con éxito');
+        } else {
+          // Crear
+          await addTransactionMutation.mutateAsync(formData);
+          resolve('Transacción creada con éxito');
+        }
+        // Cerrar formulario en éxito
+        setShowForm(false);
+        setSelectedTransaction(null);
+      } catch (error) {
+        console.error('Error al guardar:', error);
+        // Rechazar la promesa con un mensaje de error específico
+        reject(error.message || 'No se pudo guardar la transacción'); 
       }
-    } catch (error) {
-      // mutateAsync lanza errores si la mutación falla, 
-      // ya los manejamos en onError, pero podemos tener un catch general.
-      console.error('Error general al guardar transacción:', error);
-    }
+    });
+
+    // Mostrar notificación toast basada en la promesa
+    toast.promise(promise, {
+      loading: 'Guardando transacción...',
+      success: (message) => message, // Mensaje de resolve
+      error: (errorMessage) => errorMessage, // Mensaje de reject
+    });
   };
   
   const handleEditTransaction = (transaction) => {
@@ -179,20 +171,22 @@ export default function DashboardPage() {
   
   const handleDeleteTransaction = async (id) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta transacción?')) {
-      try {
-        await deleteTransactionMutation.mutateAsync(id, {
-          onSuccess: () => {
-            console.log('Transacción eliminada con éxito');
-             // No es necesario refetch aquí, invalidateQueries lo hace
-          },
-          onError: (error) => {
-            console.error('Error al eliminar transacción:', error);
-            // TODO: Mostrar error al usuario
-          },
-        });
-      } catch (error) {
-        console.error('Error general al eliminar transacción:', error);
-      }
+      // Usar promesa para toast
+      const promise = new Promise(async (resolve, reject) => {
+        try {
+          await deleteTransactionMutation.mutateAsync(id);
+          resolve('Transacción eliminada con éxito');
+        } catch (error) {
+          console.error('Error al eliminar:', error);
+          reject(error.message || 'No se pudo eliminar la transacción');
+        }
+      });
+
+      toast.promise(promise, {
+        loading: 'Eliminando transacción...',
+        success: (message) => message,
+        error: (errorMessage) => errorMessage,
+      });
     }
   };
   
@@ -327,13 +321,13 @@ export default function DashboardPage() {
           )}
           
           <TransactionsTable
-            transactions={transactions.slice(0, 5)}
+            transactions={Array.isArray(transactions) ? transactions.slice(0, 5) : []}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
             isLoading={transactionsLoading || deleteTransactionMutation.isPending}
           />
           
-          {transactions.length > 5 && (
+          {Array.isArray(transactions) && transactions.length > 5 && (
             <div className="mt-4 text-center">
               <Link href="/dashboard/transactions" className="text-sm text-[#00E676] hover:text-[#69F0AE]">
                 Ver todas las transacciones
