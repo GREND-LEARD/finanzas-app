@@ -1,76 +1,28 @@
 import { create } from 'zustand';
 import { supabase } from '../supabase/client';
 
-// Clave para almacenar manualmente la sesión
-const AUTH_STORAGE_KEY = 'finanzas-app-session';
+// Ya no necesitamos la clave ni las funciones manuales de localStorage
+// const AUTH_STORAGE_KEY = 'finanzas-app-session';
+// const getStoredUser = () => { ... };
 
-// Intentar recuperar la sesión almacenada manualmente
-const getStoredUser = () => {
-  if (typeof window === 'undefined') return null;
-  
-  try {
-    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedAuth) {
-      const parsedAuth = JSON.parse(storedAuth);
-      const now = Math.floor(Date.now() / 1000);
-      
-      // Verificar si la sesión ha expirado
-      if (parsedAuth.expiresAt && parsedAuth.expiresAt > now) {
-        console.log('Sesión recuperada de localStorage, válida');
-        return parsedAuth.user;
-      } else {
-        console.log('Sesión encontrada pero expirada, limpiando...');
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-      }
-    }
-  } catch (e) {
-    console.error('Error al recuperar sesión:', e);
-  }
-  
-  return null;
-};
+// Variable para almacenar la suscripción a onAuthStateChange
+let authListener = null;
 
 export const useAuthStore = create((set, get) => ({
-  user: getStoredUser(),
-  isLoading: false,
+  // Inicializamos user a null. checkAuth o onAuthStateChange lo poblarán.
+  user: null, 
+  isLoading: true, // Empezamos como cargando hasta que checkAuth termine
   error: null,
-  
-  // Función para guardar manualmente la sesión
-  saveSession: (session, user) => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      // Guardar los datos necesarios
-      const sessionData = {
-        user,
-        token: session.access_token,
-        refreshToken: session.refresh_token,
-        expiresAt: session.expires_at,
-        expiresIn: session.expires_in
-      };
-      
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(sessionData));
-      console.log('Sesión guardada manualmente en localStorage');
-    } catch (e) {
-      console.error('Error al guardar sesión:', e);
-    }
-  },
-  
-  // Función para limpiar la sesión
-  clearSession: () => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      console.log('Sesión eliminada de localStorage');
-    } catch (e) {
-      console.error('Error al eliminar sesión:', e);
-    }
-  },
-  
+  isInitialized: false, // Para saber si la autenticación inicial ya se comprobó
+
+  // Ya no necesitamos saveSession ni clearSession
+  // saveSession: (session, user) => { ... },
+  // clearSession: () => { ... },
+
   signIn: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
+      // Supabase se encarga de la sesión
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -78,24 +30,26 @@ export const useAuthStore = create((set, get) => ({
       
       if (error) {
         console.error('Error de inicio de sesión:', error.message);
-        set({ error: error.message, isLoading: false });
-        return null;
+        set({ error: error.message, isLoading: false, user: null });
+        return null; 
       }
       
-      // Guardar manualmente la sesión
-      const { saveSession } = get();
-      saveSession(data.session, data.user);
+      // No necesitamos guardar manualmente
+      // const { saveSession } = get();
+      // saveSession(data.session, data.user);
       
+      // El listener onAuthStateChange actualizará el usuario, 
+      // pero podemos establecerlo aquí para una respuesta más rápida en la UI.
       set({ 
         user: data.user, 
         isLoading: false,
         error: null
       });
       
-      return data;
+      return data.user; // Devolver solo el usuario o la sesión si es necesario
     } catch (error) {
-      console.error('Error inesperado:', error);
-      set({ error: error.message || 'Error al iniciar sesión', isLoading: false });
+      console.error('Error inesperado en signIn:', error);
+      set({ error: error.message || 'Error al iniciar sesión', isLoading: false, user: null });
       return null;
     }
   },
@@ -108,38 +62,35 @@ export const useAuthStore = create((set, get) => ({
         password,
         options: {
           data: {
-            name
+            // Asegúrate de que Supabase esté configurado para aceptar 'name' en los metadatos
+            name // Puedes usar raw_user_meta_data o similar si lo prefieres
           },
-          emailRedirectTo: `${window.location.origin}/auth/login`, // URL a la que se redirigirá después de verificar
+          // Si usas verificación de correo, asegúrate que esta URL exista
+          // emailRedirectTo: `${window.location.origin}/auth/callback`, // Usualmente una ruta /callback
         }
       });
       
       if (error) {
-        set({ error: error.message, isLoading: false });
+        console.error('Error en signUp:', error.message);
+        set({ error: error.message, isLoading: false, user: null });
         return null;
       }
       
-      // Si hay una sesión disponible después del registro, guardarla
-      if (data.session) {
-        const { saveSession } = get();
-        saveSession(data.session, data.user);
-        
-        set({ 
-          user: data.user,
-          isLoading: false,
-          error: null
-        });
-      } else {
-        set({ isLoading: false });
-      }
+      // No necesitamos guardar sesión manualmente.
+      // Supabase maneja el usuario/sesión después del registro (si la verificación no es obligatoria)
+      // onAuthStateChange se encargará si hay sesión inmediatamente.
       
-      console.log('Registro exitoso, correo de verificación enviado');
+      set({ 
+        // user: data.user, // Mejor dejar que onAuthStateChange lo maneje
+        isLoading: false, 
+        error: null 
+      }); 
       
-      // Consideramos el registro exitoso incluso si el correo no ha sido verificado aún
-      return data;
+      console.log('Registro iniciado, revisa tu correo si la verificación está habilitada.');
+      return data.user || data.session; // Devolver usuario o sesión si existe
     } catch (error) {
-      console.error('Error en registro:', error);
-      set({ error: error.message || 'Error al registrarse', isLoading: false });
+      console.error('Error inesperado en signUp:', error);
+      set({ error: error.message || 'Error al registrarse', isLoading: false, user: null });
       return null;
     }
   },
@@ -147,147 +98,98 @@ export const useAuthStore = create((set, get) => ({
   signOut: async () => {
     set({ isLoading: true, error: null });
     try {
-      const { clearSession } = get();
+      // No necesitamos limpiar manualmente
+      // const { clearSession } = get();
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Error al cerrar sesión:', error);
-        set({ error: error.message, isLoading: false });
+        console.error('Error al cerrar sesión:', error.message);
+        // Aún así limpiamos el estado local
+        set({ error: error.message, isLoading: false, user: null });
         return;
       }
       
-      // Limpiar sesión manualmente
-      clearSession();
-      
-      set({ user: null, isLoading: false });
+      // onAuthStateChange se encargará de poner user a null
+      set({ user: null, isLoading: false }); 
+      console.log('Sesión cerrada');
     } catch (error) {
       console.error('Error inesperado al cerrar sesión:', error);
-      set({ error: error.message || 'Error al cerrar sesión', isLoading: false });
+      set({ error: error.message || 'Error al cerrar sesión', isLoading: false, user: null });
     }
   },
   
+  // checkAuth se puede usar para la carga inicial
   checkAuth: async () => {
-    const currentState = get();
-    
-    // Si ya está cargando, evitamos múltiples solicitudes simultáneas
-    if (currentState.isLoading) return !!currentState.user;
-    
-    set({ isLoading: true, error: null });
+    const { isInitialized } = get();
+    // Evitar comprobaciones múltiples si ya se inicializó
+    if (isInitialized) return;
+
+    console.log('Verificando autenticación inicial...');
+    set({ isLoading: true });
     try {
-      // Primero verificamos si tenemos un usuario en el estado
-      if (currentState.user) {
-        set({ isLoading: false });
-        return true;
-      }
-      
-      // Si no hay usuario en el estado, intentamos obtener la sesión
+      // getSession lee la sesión persistida por Supabase
       const { data, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('Error al obtener sesión:', error);
-        set({ 
-          user: null, 
-          error: error.message,
-          isLoading: false 
-        });
-        
-        // Limpiar cualquier sesión inválida
-        const { clearSession } = get();
-        clearSession();
-        
-        return false;
+        console.error('Error al obtener sesión inicial:', error.message);
+        set({ user: null, error: error.message, isLoading: false, isInitialized: true });
+        return;
       }
       
-      // Si hay una sesión activa, guardarla y actualizar el estado
-      if (data.session) {
-        const { saveSession } = get();
-        saveSession(data.session, data.session.user);
-        
-        set({ 
-          user: data.session.user, 
-          isLoading: false,
-          error: null
-        });
-        
-        return true;
-      }
-      
-      // Si no hay sesión, simplemente actualizamos el estado
+      console.log('Sesión inicial obtenida:', data.session ? 'Sí' : 'No');
       set({ 
-        user: null,
-        isLoading: false 
-      });
-      
-      return false;
-    } catch (error) {
-      console.error('Error al verificar autenticación:', error);
-      set({ 
-        error: error.message || 'Error al verificar autenticación', 
+        user: data.session?.user ?? null, 
         isLoading: false,
-        user: null
+        error: null,
+        isInitialized: true
       });
-      
-      return false;
+
+    } catch (error) {
+      console.error('Error inesperado en checkAuth:', error);
+      set({ 
+        user: null, 
+        error: error.message || 'Error al verificar autenticación', 
+        isLoading: false, 
+        isInitialized: true 
+      });
     }
   },
-  
-  refreshSession: async () => {
-    const { session } = get();
-    if (!session) return false;
-    
-    set({ isLoading: true });
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('Error al refrescar sesión:', error);
-        set({ isLoading: false, error: error.message });
-        return false;
-      }
-      
-      set({ 
-        user: data.user, 
-        session: data.session,
-        isLoading: false,
-        error: null
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error al refrescar sesión:', error);
-      set({ 
-        isLoading: false, 
-        error: error.message || 'Error al refrescar sesión' 
-      });
-      return false;
-    }
-  }
-})); 
 
-export async function register(email, password, name) {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name
-        },
-        emailRedirectTo: `${window.location.origin}/auth/login`, // URL a la que se redirigirá después de verificar
-      }
+  // Función para suscribirse a los cambios de autenticación
+  subscribeAuth: () => {
+    if (authListener) {
+      console.log('Ya suscrito a cambios de autenticación.');
+      return; // Evitar múltiples suscripciones
+    }
+
+    console.log('Suscribiéndose a cambios de autenticación...');
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Evento Auth:', event, 'Sesión:', session ? 'Sí' : 'No');
+      set({ user: session?.user ?? null, isInitialized: true, isLoading: false });
+      
+      // Puedes manejar eventos específicos si es necesario
+      // if (event === 'PASSWORD_RECOVERY') { ... }
+      // if (event === 'USER_UPDATED') { ... }
     });
 
-    if (error) {
-      console.error('Error en registro:', error);
-      throw error;
-    }
-
-    console.log('Registro exitoso, correo de verificación enviado');
+    authListener = data.subscription;
     
-    // Consideramos el registro exitoso incluso si el correo no ha sido verificado aún
-    return data;
-  } catch (err) {
-    console.error('Error al registrar usuario:', err);
-    throw err;
+    // Llamar a checkAuth la primera vez para obtener el estado inicial rápidamente
+    get().checkAuth();
+  },
+
+  // Función para cancelar la suscripción
+  unsubscribeAuth: () => {
+    if (authListener) {
+      console.log('Cancelando suscripción a cambios de autenticación.');
+      authListener.unsubscribe();
+      authListener = null;
+    }
   }
-} 
+
+  // Ya no necesitamos refreshSession
+  // refreshSession: async () => { ... }
+})); 
+
+// Eliminar la función register externa y redundante
+// export async function register(email, password, name) { ... } 

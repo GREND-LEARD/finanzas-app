@@ -17,13 +17,10 @@ let initializationAttempts = 0;
 // Declarar la variable para exportar
 let supabase;
 
-// Cliente básico de Supabase SIN persistencia automática
+// Cliente básico de Supabase CON persistencia automática (por defecto)
 supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false, // Desactivamos la persistencia automática
-    autoRefreshToken: false, // Desactivamos el refresco automático
-    detectSessionInUrl: false // Desactivamos detección en URL
-  }
+  // No es necesario especificar auth aquí si usamos los valores por defecto.
+  // Supabase manejará la persistencia y el refresco automáticamente.
 });
 
 // Verificar inicialización del cliente
