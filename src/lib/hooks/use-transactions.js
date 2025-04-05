@@ -223,8 +223,9 @@ export function useAddTransaction() {
       // Devolver la primera fila insertada (Supabase devuelve array)
       return data?.[0]; 
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }); // Usar objeto queryKey
+    onSuccess: (data, variables, context) => {
+      // Invalidar todas las queries de transacciones para este usuario
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
     },
     // Opcional: Añadir onError aquí también para loggear si es necesario
     // onError: (error) => {
@@ -236,6 +237,7 @@ export function useAddTransaction() {
 // Hook para actualizar una transacción
 export function useUpdateTransaction() {
   const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user);
   
   return useMutation({
     mutationFn: async ({ id, ...updates }) => {
@@ -248,8 +250,9 @@ export function useUpdateTransaction() {
       if (error) throw error;
       return data[0];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['transactions']);
+    onSuccess: (data, variables, context) => {
+      // Invalidar todas las queries de transacciones para este usuario
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
     },
   });
 }
@@ -257,6 +260,7 @@ export function useUpdateTransaction() {
 // Hook para eliminar una transacción
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user);
   
   return useMutation({
     mutationFn: async (id) => {
@@ -266,10 +270,71 @@ export function useDeleteTransaction() {
         .eq('id', id);
         
       if (error) throw error;
-      return id;
+      return true;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['transactions']);
+    onSuccess: (data, variables, context) => {
+      // Invalidar todas las queries de transacciones para este usuario
+      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
     },
   });
-} 
+}
+
+// --- Function to Fetch ALL Filtered Transactions (for export) ---
+export const fetchAllFilteredTransactions = async (userId, filters = {}, sortConfig = { field: 'date', direction: 'desc' }) => {
+  if (!userId) {
+    console.warn('[fetchAllFilteredTransactions] No userId provided.');
+    return [];
+  }
+
+  console.log('[fetchAllFilteredTransactions] Fetching with:', { userId, filters, sortConfig });
+
+  let query = supabase
+    .from('transactions')
+    // Select transaction fields AND category name
+    .select(`
+      *,
+      categories ( name )
+    `)
+    .eq('user_id', userId);
+
+  // Apply Filters (similar logic to useTransactions queryFn)
+  if (filters.search) {
+    query = query.ilike('description', `%${filters.search}%`);
+  }
+  if (filters.type && filters.type !== 'all') {
+    query = query.eq('type', filters.type);
+  }
+  if (filters.category && filters.category !== 'all') {
+    query = query.eq('category_id', filters.category);
+  }
+  if (filters.dateFrom) {
+    query = query.gte('date', filters.dateFrom);
+  }
+  if (filters.dateTo) {
+    query = query.lte('date', filters.dateTo);
+  }
+  if (filters.amountMin) {
+    const amountMin = parseFloat(filters.amountMin);
+    if (!isNaN(amountMin)) query = query.gte('amount', amountMin);
+  }
+  if (filters.amountMax) {
+    const amountMax = parseFloat(filters.amountMax);
+    if (!isNaN(amountMax)) query = query.lte('amount', amountMax);
+  }
+
+  // Apply Sorting
+  const sortField = sortConfig?.field || 'date';
+  const sortAscending = (sortConfig?.direction || 'desc') === 'asc';
+  query = query.order(sortField, { ascending: sortAscending });
+
+  // Execute the query WITHOUT pagination (.range())
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('[fetchAllFilteredTransactions] Error fetching data:', error);
+    throw new Error(error.message);
+  }
+
+  console.log(`[fetchAllFilteredTransactions] Fetched ${data?.length || 0} records.`);
+  return data || [];
+}; 

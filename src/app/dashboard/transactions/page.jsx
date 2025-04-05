@@ -17,15 +17,17 @@ import Select from '../../../components/ui/Select';
 import toast from 'react-hot-toast';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-
-// Importar hooks reales
-import {
+import Papa from 'papaparse';
+import { 
   useTransactions,
   useAddTransaction,
   useUpdateTransaction,
-  useDeleteTransaction
+  useDeleteTransaction,
+  fetchAllFilteredTransactions
 } from '../../../lib/hooks/use-transactions';
 import { useCategories } from '../../../lib/hooks/use-categories';
+import { useAuthStore } from '../../../lib/store/auth-store';
+import { formatDate } from '../../../lib/utils/format';
 
 // Esquema de validación para las transacciones
 const transactionSchema = z.object({
@@ -59,6 +61,10 @@ export default function TransactionsPage() {
     amountMax: ''
   });
   const [currentPage, setCurrentPage] = useState(1); // Estado para la página actual
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Get user for export function
+  const { user } = useAuthStore();
 
   // Usar hooks para datos, pasando paginación
   const { 
@@ -275,6 +281,61 @@ export default function TransactionsPage() {
     setCurrentPage(1);
   }, [filters, sortConfig]);
 
+  // --- EXPORT FUNCTION ---
+  const handleExport = async () => {
+    if (isExporting) return; // Prevent multiple exports
+    setIsExporting(true);
+    toast.loading('Preparando exportación... por favor espera', { id: 'export-toast' });
+
+    try {
+      // Fetch ALL transactions matching current filters and sort order
+      const transactionsToExport = await fetchAllFilteredTransactions(
+        user?.id,
+        filters,
+        sortConfig
+      );
+
+      if (!transactionsToExport || transactionsToExport.length === 0) {
+        toast.error('No hay transacciones para exportar con los filtros actuales.', { id: 'export-toast' });
+        setIsExporting(false);
+        return;
+      }
+
+      // Format data for CSV
+      const csvData = transactionsToExport.map(t => ({
+        Fecha: t.date ? formatDate(t.date) : 'N/A', // Format date
+        Descripcion: t.description,
+        Monto: t.amount,
+        Tipo: t.type === 'income' ? 'Ingreso' : 'Gasto',
+        Categoria: t.categories?.name || 'Sin categoría', // Use fetched category name
+        Notas: t.notes || ''
+      }));
+
+      // Convert to CSV string using PapaParse
+      const csvString = Papa.unparse(csvData);
+
+      // Create a Blob and download link
+      const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `transacciones_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Exportación completada!', { id: 'export-toast' });
+
+    } catch (error) {
+      console.error("Error durante la exportación:", error);
+      toast.error(`Error al exportar: ${error.message}`, { id: 'export-toast' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  // --- END EXPORT FUNCTION ---
+
   // Manejo de estados de carga principales
   if (isLoadingTransactions || isLoadingCategories) {
      return <div>Cargando...</div>; // TODO: Mejorar estado de carga
@@ -309,8 +370,14 @@ export default function TransactionsPage() {
           >
             Filtros
           </Button>
-          <Button variant="outline" leftIcon={<FaFileExport />}>
-            Exportar
+          <Button 
+            variant="outline" 
+            leftIcon={<FaFileExport />} 
+            onClick={handleExport} 
+            disabled={isExporting} 
+            isLoading={isExporting}
+          >
+            Exportar CSV
           </Button>
           <Button variant="outline" leftIcon={<FaFileImport />}>
             Importar

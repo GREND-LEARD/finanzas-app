@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../lib/store/auth-store';
 import {
@@ -33,11 +33,14 @@ export default function DashboardPage() {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [chartView, setChartView] = useState('line'); // Opciones: 'line', 'area', 'pie'
   
-  const { 
-    data: transactions = [], 
+  const {
+    data: transactionsResult, // Renombramos para claridad
     isLoading: transactionsLoading,
     refetch: refetchTransactions
   } = useTransactions();
+  
+  // Extraemos el array de transacciones del resultado, con valor por defecto
+  const transactions = transactionsResult?.data || [];
   
   const { 
     data: categories = [], 
@@ -52,7 +55,16 @@ export default function DashboardPage() {
   // Combinar estados de carga de mutaciones para el formulario
   const isMutating = addTransactionMutation.isPending || updateTransactionMutation.isPending;
   
-  // Calcular estadísticas
+  // --- Calcular fecha límite (últimos 30 días) ---
+  const thirtyDaysAgo = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date;
+  }, []);
+  // --- Fin fecha límite ---
+
+  // Calcular estadísticas (usando todas las transacciones por ahora, ¿o también limitar?)
+  // Por ahora, mantendremos las estadísticas generales con todos los datos.
   const statistics = React.useMemo(() => {
     if (!transactions.length) return { income: 0, expenses: 0, balance: 0 };
     
@@ -71,43 +83,48 @@ export default function DashboardPage() {
     };
   }, [transactions]);
 
-  // Calcular cambios porcentuales (simulados para demostración)
+  // Calcular cambios porcentuales (simulados, sin cambios)
   const percentChanges = {
     income: 12.5,   // 12.5% más de ingresos que el período anterior
     expenses: -3.2, // 3.2% menos de gastos que el período anterior
     balance: 18.7   // 18.7% mejor balance que el período anterior
   };
 
-  // Datos para el gráfico de pastel
+  // Datos para el gráfico de pastel (últimos 30 días)
   const pieChartData = React.useMemo(() => {
-    if (!transactions.length) return [];
+    // Filtrar transacciones primero
+    const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
+    
+    if (!recentTransactions.length) return [];
 
     const expensesByCategory = {};
     
-    transactions
+    recentTransactions // Usar transacciones filtradas
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
-        const category = transaction.category || 'Sin categoría';
-        if (!expensesByCategory[category]) {
-          expensesByCategory[category] = 0;
+        const categoryName = transaction.categories?.name || 'Sin categoría'; // Usar nombre si existe
+        if (!expensesByCategory[categoryName]) {
+          expensesByCategory[categoryName] = 0;
         }
-        expensesByCategory[category] += Math.abs(transaction.amount);
+        expensesByCategory[categoryName] += Math.abs(transaction.amount);
       });
 
     return Object.keys(expensesByCategory).map(category => ({
       name: category,
       value: expensesByCategory[category]
     }));
-  }, [transactions]);
+  }, [transactions, thirtyDaysAgo]); // Añadir thirtyDaysAgo a dependencias
 
-  // Datos para el gráfico de líneas
+  // Datos para el gráfico de líneas (últimos 30 días)
   const lineChartData = React.useMemo(() => {
-    if (!transactions.length) return [];
+     // Filtrar transacciones primero
+    const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
 
-    // Agrupar transacciones por fecha
+    if (!recentTransactions.length) return [];
+
     const groupedByDate = {};
     
-    transactions.forEach(transaction => {
+    recentTransactions.forEach(transaction => { // Usar transacciones filtradas
       // Usar solo la fecha sin la hora
       const date = transaction.date.split('T')[0];
       
@@ -129,11 +146,11 @@ export default function DashboardPage() {
       groupedByDate[date].balance = groupedByDate[date].income - groupedByDate[date].expense;
     });
 
-    // Convertir a array y ordenar por fecha
     return Object.values(groupedByDate)
       .sort((a, b) => a.date - b.date)
-      .slice(-30); // Mostrar solo los últimos 30 días
-  }, [transactions]);
+      // Ya no necesitamos .slice(-30) aquí porque ya filtramos por fecha
+      ; 
+  }, [transactions, thirtyDaysAgo]); // Añadir thirtyDaysAgo a dependencias
   
   const handleSaveTransaction = async (formData) => {
     // Usar una promesa para manejar los toasts de carga/éxito/error
@@ -258,7 +275,7 @@ export default function DashboardPage() {
         
         {/* Gráficos con selector de tipo */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card title="Gastos por Categoría" className="bg-gray-900/60 border-gray-800 shadow-xl">
+          <Card title="Gastos por Categoría (Últimos 30 días)" className="bg-gray-900/60 border-gray-800 shadow-xl">
             {transactionsLoading ? (
               <ChartSkeleton className="h-[300px]" />
             ) : (
@@ -266,7 +283,7 @@ export default function DashboardPage() {
             )}
           </Card>
           
-          <Card title="Tendencia Financiera" className="bg-gray-900/60 border-gray-800 shadow-xl">
+          <Card title="Tendencia Financiera (Últimos 30 días)" className="bg-gray-900/60 border-gray-800 shadow-xl">
             {transactionsLoading ? (
               <ChartSkeleton className="h-[300px]" />
             ) : (
@@ -333,7 +350,7 @@ export default function DashboardPage() {
                 {selectedTransaction ? 'Editar' : 'Agregar'} Transacción
               </h4>
               <TransactionForm
-                onSave={handleSaveTransaction}
+                onSubmit={handleSaveTransaction}
                 categories={categories}
                 isLoading={isMutating}
                 isEditing={!!selectedTransaction}
@@ -341,6 +358,9 @@ export default function DashboardPage() {
               />
             </motion.div>
           )}
+          
+          {/* Log para depurar las transacciones pasadas a la tabla */}
+          {console.log('DashboardPage - Transactions being passed to table:', transactions)}
           
           <TransactionsTable
             transactions={Array.isArray(transactions) ? transactions.slice(0, 5) : []}
