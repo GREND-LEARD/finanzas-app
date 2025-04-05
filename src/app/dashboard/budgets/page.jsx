@@ -27,8 +27,9 @@ import { useCategories } from '../../../lib/hooks/use-categories';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 // Importar el formulario
-import BudgetForm from '../../../components/forms/BudgetForm'; 
-// import BudgetsList from '../../../components/dashboard/BudgetsList'; // Descomentar cuando se cree
+import BudgetForm from '../../../components/forms/BudgetForm';
+// Importar la lista
+import BudgetsList from '../../../components/dashboard/BudgetsList'; 
 // import BudgetCardSkeleton from '../../../components/skeletons/BudgetCardSkeleton';
 
 // Datos simulados de presupuestos
@@ -225,7 +226,11 @@ export default function BudgetsPage() {
         ) : budgets.length === 0 ? (
           <p className="text-center py-10 text-gray-400">No has creado ningún presupuesto todavía.</p>
         ) : (
-          <p className="text-center py-10 text-gray-400">[Lista de Presupuestos Aquí]</p>
+          <BudgetsList 
+            budgets={budgets} 
+            onEdit={handleEditClick} 
+            onDelete={handleDeleteClick}
+          />
         )}
       </Card>
 

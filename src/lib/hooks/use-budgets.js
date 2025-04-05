@@ -4,24 +4,49 @@ import { useAuthStore } from '../store/auth-store';
 
 // --- Fetch Budgets ---
 const fetchBudgets = async (userId) => {
-  if (!userId) return []; // No intentar buscar si no hay userId
+  if (!userId) return [];
 
-  const { data, error } = await supabase
+  // 1. Fetch basic budget data and related category info
+  const { data: budgets, error: fetchError } = await supabase
     .from('budgets')
     .select(`
       *,
       categories ( name, color, icon ) 
     `)
     .eq('user_id', userId)
-    .order('start_date', { ascending: false }); // Ordenar por fecha de inicio, más recientes primero
+    .order('start_date', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching budgets:', error);
-    throw new Error(error.message);
+  if (fetchError) {
+    console.error('Error fetching budgets:', fetchError);
+    throw new Error(fetchError.message);
   }
-  
-  // console.log('[fetchBudgets] Data:', data); // Log para depuración
-  return data || [];
+
+  if (!budgets || budgets.length === 0) {
+    return []; // No budgets found
+  }
+
+  // 2. For each budget, fetch the spent amount using the RPC function
+  const budgetsWithSpentAmount = await Promise.all(
+    budgets.map(async (budget) => {
+      const { data: spentAmount, error: rpcError } = await supabase.rpc(
+        'get_budget_spent_amount',
+        { p_budget_id: budget.id } // Pass budget id to the function
+      );
+
+      if (rpcError) {
+        console.error(`Error fetching spent amount for budget ${budget.id}:`, rpcError);
+        // Decide how to handle error: return budget without spent amount, or throw?
+        // For now, return with spentAmount = null or 0 to avoid breaking the list
+        return { ...budget, spent_amount: 0 }; 
+      }
+      
+      // console.log(`Budget ${budget.id} spent:`, spentAmount);
+      return { ...budget, spent_amount: spentAmount || 0 }; // Add spent_amount to the object
+    })
+  );
+
+  // console.log('[fetchBudgets] Data with spent amount:', budgetsWithSpentAmount); 
+  return budgetsWithSpentAmount;
 };
 
 export const useBudgets = () => {
