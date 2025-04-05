@@ -23,6 +23,8 @@ import DemoNotifications from '../../components/dashboard/DemoNotifications';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import StatsCardSkeleton from '../../components/skeletons/StatsCardSkeleton';
+import ChartSkeleton from '../../components/skeletons/ChartSkeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -204,73 +206,93 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold mb-6 text-white">Dashboard Financiero</h1>
         
-        {/* Resumen financiero */}
+        {/* Resumen financiero - Conditionally render skeletons or cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <AnimatedStatsCard
-            title="Ingresos"
-            value={formatCurrency(statistics.income)}
-            percentChange={percentChanges.income}
-            color="primary"
-            delay={0}
-            icon={() => (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-          />
-          <AnimatedStatsCard
-            title="Gastos"
-            value={formatCurrency(statistics.expenses)}
-            percentChange={percentChanges.expenses}
-            color="red"
-            delay={0.2}
-            icon={() => (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            )}
-          />
-          <AnimatedStatsCard
-            title="Balance"
-            value={formatCurrency(statistics.balance)}
-            percentChange={percentChanges.balance}
-            color={statistics.balance >= 0 ? 'primary' : 'red'}
-            delay={0.4}
-            icon={() => (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            )}
-          />
+          {transactionsLoading ? (
+            <>
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+              <StatsCardSkeleton />
+            </>
+          ) : (
+            <>
+              <AnimatedStatsCard
+                title="Ingresos"
+                value={formatCurrency(statistics.income)}
+                percentChange={percentChanges.income}
+                color="primary"
+                delay={0}
+                icon={() => (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              />
+              <AnimatedStatsCard
+                title="Gastos"
+                value={formatCurrency(statistics.expenses)}
+                percentChange={percentChanges.expenses}
+                color="red"
+                delay={0.2}
+                icon={() => (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                )}
+              />
+              <AnimatedStatsCard
+                title="Balance"
+                value={formatCurrency(statistics.balance)}
+                percentChange={percentChanges.balance}
+                color={statistics.balance >= 0 ? 'primary' : 'red'}
+                delay={0.4}
+                icon={() => (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                )}
+              />
+            </>
+          )}
         </div>
         
         {/* Gráficos con selector de tipo */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card title="Gastos por Categoría" className="bg-gray-900/60 border-gray-800 shadow-xl">
-            <ExpensePieChart data={pieChartData} />
+            {transactionsLoading ? (
+              <ChartSkeleton className="h-[300px]" />
+            ) : (
+              <ExpensePieChart data={pieChartData} />
+            )}
           </Card>
           
           <Card title="Tendencia Financiera" className="bg-gray-900/60 border-gray-800 shadow-xl">
-            <div className="mb-4 flex justify-end">
-              <div className="inline-flex bg-gray-800 rounded-md p-1">
-                <button 
-                  onClick={() => setChartView('line')} 
-                  className={`px-4 py-1 text-sm rounded-md transition-all ${chartView === 'line' ? 'bg-[#00E676] text-black font-medium' : 'text-gray-300 hover:bg-gray-700'}`}
-                >
-                  Línea
-                </button>
-                <button 
-                  onClick={() => setChartView('area')} 
-                  className={`px-4 py-1 text-sm rounded-md transition-all ${chartView === 'area' ? 'bg-[#00E676] text-black font-medium' : 'text-gray-300 hover:bg-gray-700'}`}
-                >
-                  Área
-                </button>
-              </div>
-            </div>
-            {chartView === 'line' ? (
-              <TransactionLineChart data={lineChartData} />
+            {transactionsLoading ? (
+              <ChartSkeleton className="h-[300px]" />
             ) : (
-              <FinancialAreaChart data={lineChartData} />
+              <>
+                <div className="mb-4 flex justify-end">
+                  <div className="inline-flex bg-gray-800 rounded-md p-1">
+                    <button 
+                      onClick={() => setChartView('line')} 
+                      className={`px-4 py-1 text-sm rounded-md transition-all ${chartView === 'line' ? 'bg-[#00E676] text-black font-medium' : 'text-gray-300 hover:bg-gray-700'}`}
+                    >
+                      Línea
+                    </button>
+                    <button 
+                      onClick={() => setChartView('area')} 
+                      className={`px-4 py-1 text-sm rounded-md transition-all ${chartView === 'area' ? 'bg-[#00E676] text-black font-medium' : 'text-gray-300 hover:bg-gray-700'}`}
+                    >
+                      Área
+                    </button>
+                  </div>
+                </div>
+                {chartView === 'line' ? (
+                  <TransactionLineChart data={lineChartData} />
+                ) : (
+                  <FinancialAreaChart data={lineChartData} />
+                )}
+              </>
             )}
           </Card>
         </div>
