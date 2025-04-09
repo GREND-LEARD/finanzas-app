@@ -63,16 +63,19 @@ export default function DashboardPage() {
   }, []);
   // --- Fin fecha límite ---
 
-  // Calcular estadísticas (usando todas las transacciones por ahora, ¿o también limitar?)
-  // Por ahora, mantendremos las estadísticas generales con todos los datos.
+  // Calcular estadísticas (usando transacciones de los últimos 30 días)
   const statistics = React.useMemo(() => {
-    if (!transactions.length) return { income: 0, expenses: 0, balance: 0 };
+    // Primero, filtrar las transacciones para incluir solo las de los últimos 30 días
+    const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
     
-    const income = transactions
+    if (!recentTransactions.length) return { income: 0, expenses: 0, balance: 0 };
+    
+    // Calcular sobre las transacciones filtradas
+    const income = recentTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
       
-    const expenses = transactions
+    const expenses = recentTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
       
@@ -81,7 +84,7 @@ export default function DashboardPage() {
       expenses,
       balance: income - expenses
     };
-  }, [transactions]);
+  }, [transactions, thirtyDaysAgo]);
 
   // Calcular cambios porcentuales (simulados, sin cambios)
   const percentChanges = {
