@@ -1,49 +1,57 @@
 import React from 'react';
+import { formatCurrency, formatPercent } from '@/lib/utils/format';
+import { useSettingsStore } from '@/lib/store/settings-store';
 import Card from '../ui/Card';
 
-export default function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  change, 
-  className = '',
-  color = 'blue'
+export default function StatCard({
+  title,
+  value,
+  change,
+  icon,
+  color = 'blue',
+  className = ''
 }) {
+  const { currency, locale } = useSettingsStore();
+
   // Colores para diferentes estados
   const colors = {
-    blue: 'text-blue-400 bg-blue-400/10',
-    green: 'text-green-400 bg-green-400/10',
-    red: 'text-red-400 bg-red-400/10',
-    yellow: 'text-yellow-400 bg-yellow-400/10',
-    purple: 'text-purple-400 bg-purple-400/10',
+    blue: 'bg-blue-500/20 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+    green: 'bg-green-500/20 text-green-600 dark:bg-green-500/10 dark:text-green-400',
+    red: 'bg-red-500/20 text-red-600 dark:bg-red-500/10 dark:text-red-400',
+    purple: 'bg-purple-500/20 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
+    yellow: 'bg-yellow-500/20 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400',
   };
 
   // Determinar si el cambio es positivo o negativo
   const isPositive = change > 0;
-  const changeColor = isPositive ? 'text-green-400' : 'text-red-400';
+  const changeColor = isPositive ? 'text-green-500' : 'text-red-500';
   const changeIcon = isPositive ? '↑' : '↓';
+
+  // Determina si el valor es monetario
+  const isMonetary = typeof value === 'number' && (
+    title.toLowerCase().includes('ingreso') || 
+    title.toLowerCase().includes('gasto') || 
+    title.toLowerCase().includes('balance') ||
+    title.toLowerCase().includes('ahorro')
+  );
 
   return (
     <Card className={`${className}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-medium text-gray-400">{title}</h3>
-          <p className="text-2xl font-semibold mt-1 text-white">{value}</p>
-          
-          {change !== undefined && (
-            <div className="flex items-center mt-2">
-              <span className={`text-sm ${changeColor}`}>
-                {changeIcon} {Math.abs(change)}%
-              </span>
-              <span className="text-sm text-gray-500 ml-1">vs periodo anterior</span>
-            </div>
-          )}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+        <div className={`p-2 rounded-full ${colors[color]}`}>
+          {icon}
         </div>
-        
-        {Icon && (
-          <div className={`p-3 rounded-full ${colors[color]}`}>
-            {typeof Icon === 'function' ? <Icon /> : <Icon className="w-6 h-6" />}
-          </div>
+      </div>
+      <div className="flex flex-col space-y-1.5">
+        <h4 className="text-2xl font-bold">
+          {isMonetary ? formatCurrency(value, currency, locale) : value}
+        </h4>
+        {change !== undefined && (
+          <p className={`text-xs ${changeColor} flex items-center`}>
+            <span>{changeIcon} {Math.abs(change).toFixed(1)}%</span>
+            <span className="text-gray-500 dark:text-gray-400 ml-1">desde el mes pasado</span>
+          </p>
         )}
       </div>
     </Card>

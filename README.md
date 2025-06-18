@@ -1,108 +1,94 @@
 # Finanzas App
 
-Una aplicación web para gestionar finanzas personales, visualizar datos mediante gráficos y llevar un control de ingresos y gastos.
+Aplicación para gestionar finanzas personales con visualización de datos, presupuestos y metas financieras.
 
 ## Características
 
-- 📊 Dashboard con visualización de datos financieros
-- 💰 Registro de ingresos y gastos
-- 📁 Categorización de transacciones
-- 📈 Gráficos interactivos de rendimiento financiero
-- 🔒 Autenticación de usuarios con Supabase
-- 📱 Diseño responsivo para todos los dispositivos
-- 📤 Exportación de datos a CSV y PDF
-- 📄 Funcionalidad de impresión de reportes
+- ✅ Autenticación de usuarios con Supabase
+- ✅ Gestión de transacciones (ingresos y gastos)
+- ✅ Categorización de transacciones
+- ✅ Control de presupuestos
+- ✅ Metas financieras
+- ✅ Panel de estadísticas
+- ✅ Reportes y análisis
+- ✅ Tema claro/oscuro
+- ✅ Soporte para múltiples monedas
 
-## Tecnologías Principales
+## Tecnologías
 
-- **Framework:** [Next.js](https://nextjs.org/) (con Turbopack para desarrollo)
-- **Lenguaje:** JavaScript / TypeScript (según `jsconfig.json` y `next-env.d.ts`)
-- **Base de Datos y Autenticación:** [Supabase](https://supabase.com/)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/) con [PostCSS](https://postcss.org/)
-- **Gestión de Estado:**
-    - Cliente: [Zustand](https://github.com/pmndrs/zustand)
-    - Servidor/Caché: [React Query (TanStack Query)](https://tanstack.com/query/latest)
-- **Formularios:** [React Hook Form](https://react-hook-form.com/)
-- **Validación:** [Zod](https://zod.dev/)
-- **Linting:** [ESLint](https://eslint.org/)
+- Next.js 14 (App Router)
+- React
+- Tailwind CSS
+- Supabase (Autenticación y Base de Datos)
+- React Query
+- Zustand
+- Chart.js
 
-## Librerías Clave Implementadas
+## Configuraciones Personalizables
 
-- **Visualización de Datos:** [Recharts](https://recharts.org/)
-- **Manejo de Fechas:** [date-fns](https://date-fns.org/)
-- **Componentes UI y UX:**
-    - Animaciones: [Framer Motion](https://www.framer.com/motion/)
-    - Iconos: [React Icons](https://react-icons.github.io/react-icons/)
-    - Notificaciones (Toasts): [React Hot Toast](https://react-hot-toast.com/)
-    - Esqueletos de Carga: [React Loading Skeleton](https://github.com/dvtng/react-loading-skeleton)
-- **Exportación/Importación de Datos:**
-    - CSV: [PapaParse](https://www.papaparse.com/)
-    - Excel (XLSX): [SheetJS (xlsx)](https://sheetjs.com/)
-    - PDF: [jsPDF](https://github.com/parallax/jsPDF) & [jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable)
-- **Impresión:** [react-to-print](https://github.com/gregnb/react-to-print)
-- **Autenticación (Tokens):** [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) (Probablemente para manejo de sesiones/tokens del lado del servidor o cliente)
-- **Core React/Next:** React, React DOM, Next.js
+La aplicación permite a los usuarios personalizar su experiencia:
 
-## Configuración del proyecto
+- **Moneda:** Selecciona entre diferentes divisas (MXN, USD, EUR, GBP, etc.)
+- **Tema:** Modo oscuro o claro
+- **Formato regional:** Configura el formato de números y fechas según tu ubicación
+- **Día de inicio de semana:** Lunes o domingo
 
-### Requisitos previos
+Estas configuraciones se guardan automáticamente en el navegador y se aplican a todos los componentes.
 
-- Node.js (revisar versión en `package.json` o requerimientos del equipo)
-- Una cuenta en [Supabase](https://supabase.com/)
+## Estructura del Proyecto
 
-### Instalación
+- `/src/app` - Páginas y rutas de la aplicación
+- `/src/components` - Componentes de UI reutilizables
+- `/src/lib` - Utilidades, hooks y configuraciones
+- `/src/utils` - Funciones utilitarias y helpers
+- `/src/lib/store` - Estados globales con Zustand
+- `/src/sql` - Scripts SQL para configurar la base de datos
 
-1.  Clona este repositorio
-    ```
-    git clone <URL_DEL_REPOSITORIO>
-    cd finanzas-app
-    ```
+## Configuración de la Base de Datos
 
-2.  Instala las dependencias
-    ```
-    npm install
-    ```
-    O si usas `yarn` o `pnpm`:
-    ```
-    yarn install
-    # o
-    pnpm install
-    ```
+Para configurar la base de datos en Supabase, consulta la documentación en `README-supabase.md`.
 
-3.  Configura las variables de entorno
-    Crea un archivo `.env.local` basándote en `.env.local.example` (si existe) o añade las siguientes variables:
-    ```env
-    NEXT_PUBLIC_SUPABASE_URL=TU_SUPABASE_URL
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=TU_SUPABASE_ANON_KEY
-    # Añadir otras variables necesarias (e.g., JWT_SECRET si usas jsonwebtoken en el backend)
-    ```
-    Actualiza las variables con tus credenciales de Supabase y otras configuraciones necesarias.
+## Instalación
 
-4.  Inicia el servidor de desarrollo
-    ```
-    npm run dev
-    ```
-    Esto iniciará la aplicación en modo desarrollo con Turbopack.
+1. Clonar el repositorio:
 
-## Estructura de la base de datos (Ejemplo)
+```bash
+git clone https://github.com/tu-usuario/finanzas-app.git
+cd finanzas-app
+```
 
-La aplicación utiliza las siguientes tablas en Supabase (pueden variar):
+2. Instalar dependencias:
 
-- **`users`**: Gestionado por Supabase Auth.
-- **`accounts`**: Información de las cuentas de usuario (ej. bancarias, efectivo).
-- **`transactions`**: Registro de ingresos y gastos asociados a cuentas y categorías.
-- **`categories`**: Categorías para clasificar transacciones.
+```bash
+npm install
+```
 
-## Contribuir
+3. Configurar variables de entorno:
 
-Las contribuciones son bienvenidas. Para contribuir:
+Crea un archivo `.env.local` en la raíz del proyecto:
 
-1.  Haz un fork del proyecto
-2.  Crea una rama para tu característica (`git checkout -b feature/nueva-feature`)
-3.  Haz tus cambios y commitea (`git commit -m 'Agrega nueva feature'`)
-4.  Empuja a la rama (`git push origin feature/nueva-feature`)
-5.  Abre un Pull Request
+```
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-anon
+```
 
-## Licencia
+4. Iniciar el servidor de desarrollo:
 
-Este proyecto está bajo la licencia MIT.
+```bash
+npm run dev
+```
+
+5. Navegar a `http://localhost:3000`
+
+## Pantallas
+
+La aplicación cuenta con las siguientes páginas:
+
+- **Inicio:** Landing page con información general
+- **Dashboard:** Vista general de finanzas con estadísticas
+- **Transacciones:** Gestión de ingresos y gastos
+- **Categorías:** Administración de categorías para transacciones
+- **Presupuestos:** Control y seguimiento de presupuestos mensuales
+- **Metas Financieras:** Gestión de metas de ahorro
+- **Reportes:** Análisis detallado de finanzas
+- **Configuración:** Personalización de la aplicación

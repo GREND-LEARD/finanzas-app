@@ -8,13 +8,13 @@ const fetchBudgets = async (userId) => {
 
   // 1. Fetch basic budget data and related category info
   const { data: budgets, error: fetchError } = await supabase
-    .from('budgets')
+    .from('presupuestos')
     .select(`
       *,
-      categories ( name, color, icon ) 
+      categorias ( nombre, color, icono ) 
     `)
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false });
+    .eq('usuario_id', userId)
+    .order('fecha_inicio', { ascending: false });
 
   if (fetchError) {
     console.error('Error fetching budgets:', fetchError);
@@ -29,19 +29,19 @@ const fetchBudgets = async (userId) => {
   const budgetsWithSpentAmount = await Promise.all(
     budgets.map(async (budget) => {
       const { data: spentAmount, error: rpcError } = await supabase.rpc(
-        'get_budget_spent_amount',
-        { p_budget_id: budget.id } // Pass budget id to the function
+        'obtener_monto_gastado_presupuesto',
+        { p_presupuesto_id: budget.id } // Pass budget id to the function
       );
 
       if (rpcError) {
         console.error(`Error fetching spent amount for budget ${budget.id}:`, rpcError);
         // Decide how to handle error: return budget without spent amount, or throw?
         // For now, return with spentAmount = null or 0 to avoid breaking the list
-        return { ...budget, spent_amount: 0 }; 
+        return { ...budget, monto_gastado: 0 }; 
       }
       
       // console.log(`Budget ${budget.id} spent:`, spentAmount);
-      return { ...budget, spent_amount: spentAmount || 0 }; // Add spent_amount to the object
+      return { ...budget, monto_gastado: spentAmount || 0 }; // Add spent_amount to the object
     })
   );
 
@@ -54,7 +54,7 @@ export const useBudgets = () => {
   const userId = user?.id;
 
   return useQuery({
-    queryKey: ['budgets', userId], // Clave de query incluye userId
+    queryKey: ['presupuestos', userId], // Clave de query incluye userId
     queryFn: () => fetchBudgets(userId),
     enabled: !!userId, // Solo ejecutar la query si hay un userId
     staleTime: 1000 * 60 * 5, // Considerar los datos frescos por 5 minutos
@@ -69,13 +69,13 @@ const addBudget = async (budgetData) => {
 
   const budgetPayload = {
     ...budgetData,
-    user_id: user.id,
-    // category_id ya debería estar en budgetData
-    // start_date y end_date ya deberían estar en budgetData
+    usuario_id: user.id,
+    // categoria_id ya debería estar en budgetData
+    // fecha_inicio y fecha_fin ya deberían estar en budgetData
   };
 
   const { data, error } = await supabase
-    .from('budgets')
+    .from('presupuestos')
     .insert([budgetPayload])
     .select(); // Devolver la fila insertada
 
@@ -95,7 +95,7 @@ export const useAddBudget = () => {
     mutationFn: addBudget,
     onSuccess: () => {
       // Invalidar y refetchear la query de presupuestos cuando se añade uno nuevo
-      queryClient.invalidateQueries({ queryKey: ['budgets', userId] });
+      queryClient.invalidateQueries({ queryKey: ['presupuestos', userId] });
     },
     onError: (error) => {
       console.error('Mutation error adding budget:', error);
@@ -109,7 +109,7 @@ const updateBudget = async ({ id, ...updateData }) => {
    if (!id) throw new Error('ID del presupuesto es requerido para actualizar');
   
    const { data, error } = await supabase
-    .from('budgets')
+    .from('presupuestos')
     .update(updateData)
     .eq('id', id)
     .select(); // Devolver la fila actualizada
@@ -130,10 +130,10 @@ export const useUpdateBudget = () => {
     mutationFn: updateBudget,
     onSuccess: (updatedBudget) => {
       // Invalidar la query general
-      queryClient.invalidateQueries({ queryKey: ['budgets', userId] });
+      queryClient.invalidateQueries({ queryKey: ['presupuestos', userId] });
       
       // Opcional: Actualizar directamente el caché si prefieres
-      // queryClient.setQueryData(['budgets', userId], (oldData) => 
+      // queryClient.setQueryData(['presupuestos', userId], (oldData) => 
       //  oldData?.map(budget => budget.id === updatedBudget.id ? updatedBudget : budget)
       // );
     },
@@ -148,7 +148,7 @@ const deleteBudget = async (id) => {
   if (!id) throw new Error('ID del presupuesto es requerido para eliminar');
 
   const { error } = await supabase
-    .from('budgets')
+    .from('presupuestos')
     .delete()
     .eq('id', id);
 
@@ -168,10 +168,10 @@ export const useDeleteBudget = () => {
     mutationFn: deleteBudget,
     onSuccess: (deletedBudgetId) => {
       // Invalidar la query general
-      queryClient.invalidateQueries({ queryKey: ['budgets', userId] });
+      queryClient.invalidateQueries({ queryKey: ['presupuestos', userId] });
       
       // Opcional: Eliminar del caché directamente
-      // queryClient.setQueryData(['budgets', userId], (oldData) => 
+      // queryClient.setQueryData(['presupuestos', userId], (oldData) => 
       //  oldData?.filter(budget => budget.id !== deletedBudgetId)
       // );
     },

@@ -1,5 +1,6 @@
 import React from 'react';
-import { formatCurrency, formatDate } from '../../lib/utils/format';
+import { formatCurrency, formatDate } from '@/lib/utils/format';
+import { useSettingsStore } from '@/lib/store/settings-store';
 import Button from '../ui/Button';
 import TransactionTableRowSkeleton from '../skeletons/TransactionTableRowSkeleton';
 
@@ -9,6 +10,8 @@ export default function TransactionsTable({
   onDelete, 
   isLoading = false 
 }) {
+  const { currency, locale } = useSettingsStore();
+  
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -35,18 +38,24 @@ export default function TransactionsTable({
         {transactions.map((transaction) => (
           <tr key={transaction.id} className="hover:bg-gray-600">
             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-              {formatDate(transaction.date)}
+              {formatDate(transaction.date, undefined, locale)}
             </td>
             <td className="px-4 py-3 text-sm text-gray-200">
               {transaction.description}
             </td>
             <td className="px-4 py-3 text-sm text-gray-200">
-              {transaction.category}
+              <div className="flex items-center">
+                <span
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: transaction.category?.color || '#718096' }}
+                ></span>
+                {transaction.category?.name || 'Sin categoría'}
+              </div>
             </td>
             <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-right ${
               transaction.type === 'income' ? 'text-green-400' : 'text-red-400'
             }`}>
-              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount), currency, locale)}
             </td>
             <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
               <div className="flex justify-end space-x-2">

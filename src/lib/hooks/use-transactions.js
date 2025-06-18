@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/auth-store';
 // Hook para obtener las transacciones con filtrado, ordenación y paginación
 export function useTransactions(
   filters = {}, 
-  sortConfig = { field: 'date', direction: 'desc' },
+  sortConfig = { field: 'fecha', direction: 'desc' },
   page = 1, // Página actual (1-indexado)
   pageSize = 10 // Número de items por página
 ) {
@@ -29,9 +29,9 @@ export function useTransactions(
       }
       
       let query = supabase
-        .from('transactions')
+        .from('transacciones')
         .select('*', { count: 'exact' }) // Move select and count here temporarily for debugging? No, keep original structure.
-        .eq('user_id', userId);
+        .eq('usuario_id', userId);
 
       // --- LOG ANTES DE FILTROS ---
       console.log('[queryFn] Query inicial antes de filtros:', query);
@@ -46,39 +46,39 @@ export function useTransactions(
         // Búsqueda de texto
         if (currentFilters.search) {
           console.log('[queryFn] Aplicando filtro: search');
-          query = query.ilike('description', `%${currentFilters.search}%`); 
+          query = query.ilike('descripcion', `%${currentFilters.search}%`); 
         }
         // Tipo
         if (currentFilters.type && currentFilters.type !== 'all') {
           console.log('[queryFn] Aplicando filtro: type');
-          query = query.eq('type', currentFilters.type);
+          query = query.eq('tipo', currentFilters.type);
         }
         // Categoría
         if (currentFilters.category && currentFilters.category !== 'all') {
           console.log('[queryFn] Aplicando filtro: category');
-          query = query.eq('category_id', currentFilters.category);
+          query = query.eq('categoria_id', currentFilters.category);
         }
         // Fecha Desde
         if (currentFilters.dateFrom) {
           console.log('[queryFn] Aplicando filtro: dateFrom');
-          query = query.gte('date', currentFilters.dateFrom);
+          query = query.gte('fecha', currentFilters.dateFrom);
         }
         // Fecha Hasta
         if (currentFilters.dateTo) { 
           console.log('[queryFn] Aplicando filtro: dateTo');
-          query = query.lte('date', currentFilters.dateTo); 
+          query = query.lte('fecha', currentFilters.dateTo); 
         }
         // Monto Mínimo
         if (currentFilters.amountMin) {
           console.log('[queryFn] Aplicando filtro: amountMin');
           const amountMin = parseFloat(currentFilters.amountMin);
-          if (!isNaN(amountMin)) query = query.gte('amount', amountMin);
+          if (!isNaN(amountMin)) query = query.gte('monto', amountMin);
         }
         // Monto Máximo
         if (currentFilters.amountMax) {
           console.log('[queryFn] Aplicando filtro: amountMax');
           const amountMax = parseFloat(currentFilters.amountMax);
-          if (!isNaN(amountMax)) query = query.lte('amount', amountMax);
+          if (!isNaN(amountMax)) query = query.lte('monto', amountMax);
         }
         // --- LOG FIN FILTROS ---
         console.log('[queryFn] Fin bloque de aplicación de filtros.');
@@ -97,19 +97,19 @@ export function useTransactions(
       // IMPORTANTE: Separar la obtención del conteo de la query principal para Supabase v2+
       // Primero, construimos la query base con filtros
       let countQuery = supabase
-        .from('transactions')
+        .from('transacciones')
         .select('*', { count: 'exact', head: true }) // Pedir solo el conteo
-        .eq('user_id', userId);
+        .eq('usuario_id', userId);
 
       // Re-aplicar filtros a la query de conteo
       if (currentFilters) {
-        if (currentFilters.search) { countQuery = countQuery.ilike('description', `%${currentFilters.search}%`); }
-        if (currentFilters.type && currentFilters.type !== 'all') { countQuery = countQuery.eq('type', currentFilters.type); }
-        if (currentFilters.category && currentFilters.category !== 'all') { countQuery = countQuery.eq('category_id', currentFilters.category); }
-        if (currentFilters.dateFrom) { countQuery = countQuery.gte('date', currentFilters.dateFrom); }
-        if (currentFilters.dateTo) { countQuery = countQuery.lte('date', currentFilters.dateTo); }
-        if (currentFilters.amountMin) { const amountMin = parseFloat(currentFilters.amountMin); if (!isNaN(amountMin)) countQuery = countQuery.gte('amount', amountMin); }
-        if (currentFilters.amountMax) { const amountMax = parseFloat(currentFilters.amountMax); if (!isNaN(amountMax)) countQuery = countQuery.lte('amount', amountMax); }
+        if (currentFilters.search) { countQuery = countQuery.ilike('descripcion', `%${currentFilters.search}%`); }
+        if (currentFilters.type && currentFilters.type !== 'all') { countQuery = countQuery.eq('tipo', currentFilters.type); }
+        if (currentFilters.category && currentFilters.category !== 'all') { countQuery = countQuery.eq('categoria_id', currentFilters.category); }
+        if (currentFilters.dateFrom) { countQuery = countQuery.gte('fecha', currentFilters.dateFrom); }
+        if (currentFilters.dateTo) { countQuery = countQuery.lte('fecha', currentFilters.dateTo); }
+        if (currentFilters.amountMin) { const amountMin = parseFloat(currentFilters.amountMin); if (!isNaN(amountMin)) countQuery = countQuery.gte('monto', amountMin); }
+        if (currentFilters.amountMax) { const amountMax = parseFloat(currentFilters.amountMax); if (!isNaN(amountMax)) countQuery = countQuery.lte('monto', amountMax); }
       }
 
       console.log('[queryFn] Realizando llamada a Supabase para CONTEO...');
@@ -136,7 +136,7 @@ export function useTransactions(
       const to = from + currentPageSize - 1;
 
       // --- Aplicar Ordenación ---
-      const sortField = currentSortConfig?.field || 'date';
+      const sortField = currentSortConfig?.field || 'fecha';
       const sortAscending = (currentSortConfig?.direction || 'desc') === 'asc';
       
       // --- LOG ANTES DE DATOS ---
@@ -146,19 +146,19 @@ export function useTransactions(
       // --- Obtener Datos Paginados ---
       // Reconstruir la query para obtener los datos, aplicando filtros, orden y rango
       let dataQuery = supabase
-        .from('transactions')
+        .from('transacciones')
         .select('*') // Seleccionar todas las columnas para los datos
-        .eq('user_id', userId);
+        .eq('usuario_id', userId);
 
       // Re-aplicar filtros a la query de datos
        if (currentFilters) {
-        if (currentFilters.search) { dataQuery = dataQuery.ilike('description', `%${currentFilters.search}%`); }
-        if (currentFilters.type && currentFilters.type !== 'all') { dataQuery = dataQuery.eq('type', currentFilters.type); }
-        if (currentFilters.category && currentFilters.category !== 'all') { dataQuery = dataQuery.eq('category_id', currentFilters.category); }
-        if (currentFilters.dateFrom) { dataQuery = dataQuery.gte('date', currentFilters.dateFrom); }
-        if (currentFilters.dateTo) { dataQuery = dataQuery.lte('date', currentFilters.dateTo); }
-        if (currentFilters.amountMin) { const amountMin = parseFloat(currentFilters.amountMin); if (!isNaN(amountMin)) dataQuery = dataQuery.gte('amount', amountMin); }
-        if (currentFilters.amountMax) { const amountMax = parseFloat(currentFilters.amountMax); if (!isNaN(amountMax)) dataQuery = dataQuery.lte('amount', amountMax); }
+        if (currentFilters.search) { dataQuery = dataQuery.ilike('descripcion', `%${currentFilters.search}%`); }
+        if (currentFilters.type && currentFilters.type !== 'all') { dataQuery = dataQuery.eq('tipo', currentFilters.type); }
+        if (currentFilters.category && currentFilters.category !== 'all') { dataQuery = dataQuery.eq('categoria_id', currentFilters.category); }
+        if (currentFilters.dateFrom) { dataQuery = dataQuery.gte('fecha', currentFilters.dateFrom); }
+        if (currentFilters.dateTo) { dataQuery = dataQuery.lte('fecha', currentFilters.dateTo); }
+        if (currentFilters.amountMin) { const amountMin = parseFloat(currentFilters.amountMin); if (!isNaN(amountMin)) dataQuery = dataQuery.gte('monto', amountMin); }
+        if (currentFilters.amountMax) { const amountMax = parseFloat(currentFilters.amountMax); if (!isNaN(amountMax)) dataQuery = dataQuery.lte('monto', amountMax); }
       }
       
       // Aplicar ordenación y rango
@@ -198,7 +198,7 @@ export function useAddTransaction() {
       
       const newTransaction = {
         ...transaction,
-        user_id: user.id, // Asegurar que user_id se añade
+        usuario_id: user.id, // Asegurar que usuario_id se añade
       };
       
       // --- LOGS DETALLADOS --- 
@@ -206,7 +206,7 @@ export function useAddTransaction() {
       // --- FIN LOGS ---
       
       const { data, error } = await supabase
-        .from('transactions')
+        .from('transacciones')
         .insert([newTransaction]) // Supabase espera un array para insert
         .select(); // Es importante el .select() para obtener la fila insertada
         
@@ -242,17 +242,16 @@ export function useUpdateTransaction() {
   return useMutation({
     mutationFn: async ({ id, ...updates }) => {
       const { data, error } = await supabase
-        .from('transactions')
+        .from('transacciones')
         .update(updates)
         .eq('id', id)
         .select();
         
       if (error) throw error;
-      return data[0];
+      return data?.[0];
     },
-    onSuccess: (data, variables, context) => {
-      // Invalidar todas las queries de transacciones para este usuario
-      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
+    onSuccess: () => {
+      queryClient.invalidateQueries(['transactions', user?.id]);
     },
   });
 }
@@ -265,22 +264,21 @@ export function useDeleteTransaction() {
   return useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
-        .from('transactions')
+        .from('transacciones')
         .delete()
         .eq('id', id);
         
       if (error) throw error;
-      return true;
+      return id;
     },
-    onSuccess: (data, variables, context) => {
-      // Invalidar todas las queries de transacciones para este usuario
-      queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
+    onSuccess: () => {
+      queryClient.invalidateQueries(['transactions', user?.id]);
     },
   });
 }
 
 // --- Function to Fetch ALL Filtered Transactions (for export) ---
-export const fetchAllFilteredTransactions = async (userId, filters = {}, sortConfig = { field: 'date', direction: 'desc' }) => {
+export const fetchAllFilteredTransactions = async (userId, filters = {}, sortConfig = { field: 'fecha', direction: 'desc' }) => {
   if (!userId) {
     console.warn('[fetchAllFilteredTransactions] No userId provided.');
     return [];
@@ -289,41 +287,41 @@ export const fetchAllFilteredTransactions = async (userId, filters = {}, sortCon
   console.log('[fetchAllFilteredTransactions] Fetching with:', { userId, filters, sortConfig });
 
   let query = supabase
-    .from('transactions')
+    .from('transacciones')
     // Select transaction fields AND category name
     .select(`
       *,
-      categories ( name )
+      categorias ( nombre )
     `)
-    .eq('user_id', userId);
+    .eq('usuario_id', userId);
 
   // Apply Filters (similar logic to useTransactions queryFn)
   if (filters.search) {
-    query = query.ilike('description', `%${filters.search}%`);
+    query = query.ilike('descripcion', `%${filters.search}%`);
   }
   if (filters.type && filters.type !== 'all') {
-    query = query.eq('type', filters.type);
+    query = query.eq('tipo', filters.type);
   }
   if (filters.category && filters.category !== 'all') {
-    query = query.eq('category_id', filters.category);
+    query = query.eq('categoria_id', filters.category);
   }
   if (filters.dateFrom) {
-    query = query.gte('date', filters.dateFrom);
+    query = query.gte('fecha', filters.dateFrom);
   }
   if (filters.dateTo) {
-    query = query.lte('date', filters.dateTo);
+    query = query.lte('fecha', filters.dateTo);
   }
   if (filters.amountMin) {
     const amountMin = parseFloat(filters.amountMin);
-    if (!isNaN(amountMin)) query = query.gte('amount', amountMin);
+    if (!isNaN(amountMin)) query = query.gte('monto', amountMin);
   }
   if (filters.amountMax) {
     const amountMax = parseFloat(filters.amountMax);
-    if (!isNaN(amountMax)) query = query.lte('amount', amountMax);
+    if (!isNaN(amountMax)) query = query.lte('monto', amountMax);
   }
 
   // Apply Sorting
-  const sortField = sortConfig?.field || 'date';
+  const sortField = sortConfig?.field || 'fecha';
   const sortAscending = (sortConfig?.direction || 'desc') === 'asc';
   query = query.order(sortField, { ascending: sortAscending });
 

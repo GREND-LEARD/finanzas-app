@@ -1,17 +1,17 @@
 import { z } from 'zod';
 
 export const goalFormSchema = z.object({
-  name: z.string()
+  nombre: z.string()
     .min(3, { message: 'El nombre de la meta debe tener al menos 3 caracteres' })
     .max(100, { message: 'El nombre no puede exceder los 100 caracteres' })
     .trim(),
-  target_amount: z.preprocess(
+  monto_objetivo: z.preprocess(
     // Permitir string, intentar convertir a número
     (val) => typeof val === 'string' ? parseFloat(val.replace(/[,.]/g, '')) : val,
     z.number({ required_error: 'El monto objetivo es requerido', invalid_type_error: 'El monto objetivo debe ser un número' })
       .positive({ message: 'El monto objetivo debe ser positivo' })
   ),
-  current_amount: z.preprocess(
+  monto_actual: z.preprocess(
     // Permitir string, intentar convertir a número, manejar vacío como undefined
     (val) => {
       if (val === '' || val == null) return undefined; // Permitir campo vacío
@@ -21,7 +21,7 @@ export const goalFormSchema = z.object({
       .nonnegative({ message: 'El monto actual no puede ser negativo' })
       .optional() // Hacerlo opcional en el schema
   ),
-  target_date: z.preprocess(
+  fecha_objetivo: z.preprocess(
     // Permitir string o Date, manejar vacío/null como undefined
     (arg) => {
       if (arg === '' || arg == null) return undefined; // Permitir campo vacío/null
@@ -35,7 +35,7 @@ export const goalFormSchema = z.object({
     }, 
     z.date({ errorMap: () => ({ message: 'Fecha objetivo inválida' }) }).nullable().optional() // Hacerlo opcional y permitir null
   ),
-  // No incluimos 'status' aquí, se manejará por defecto en el hook/DB
+  // No incluimos 'estado' aquí, se manejará por defecto en el hook/DB
 });
 
 // Opcional: Tipo para TypeScript

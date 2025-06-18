@@ -1,62 +1,24 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ReactQueryProvider } from "../lib/providers/react-query-provider";
-import { AuthProvider } from "../lib/providers/auth-provider";
-import { AuthInitializer } from '../lib/providers/AuthInitializer';
+import { Geist } from 'next/font/google';
+import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geist = Geist({ subsets: ['latin'] });
 
 export const metadata = {
-  title: "Finanzas Personales",
-  description: "Gestiona tus ingresos, gastos y genera reportes visuales",
+  title: 'Finanzas Personales',
+  description: 'Aplicación para gestionar tus finanzas personales',
 };
+
+import ClientLayout from '@/components/ClientLayout';
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ReactQueryProvider>
-          <AuthProvider>
-            <AuthInitializer />
-            {children}
-          </AuthProvider>
-        </ReactQueryProvider>
-        <Toaster 
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: '#333',
-              color: '#fff',
-            },
-            success: {
-              style: {
-                background: '#10B981',
-              },
-              iconTheme: {
-                primary: '#fff',
-                secondary: '#10B981',
-              },
-            },
-            error: {
-              style: {
-                background: '#EF4444',
-              },
-              iconTheme: {
-                primary: '#fff',
-                secondary: '#EF4444',
-              },
-            },
-          }}
-        />
+    <html lang="es" className="h-full">
+      <body className={`${geist.className} h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}>
+        <ClientLayout>
+          {children}
+          <Toaster position="top-right" />
+        </ClientLayout>
       </body>
     </html>
   );

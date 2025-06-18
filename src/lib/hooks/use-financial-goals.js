@@ -7,10 +7,10 @@ const fetchFinancialGoals = async (userId) => {
   if (!userId) return [];
 
   const { data, error } = await supabase
-    .from('financial_goals')
+    .from('metas_financieras')
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false }); // Ordenar por creación, más recientes primero
+    .eq('usuario_id', userId)
+    .order('fecha_creacion', { ascending: false }); // Ordenar por creación, más recientes primero
 
   if (error) {
     console.error('Error fetching financial goals:', error);
@@ -24,7 +24,7 @@ export const useFinancialGoals = () => {
   const userId = user?.id;
 
   return useQuery({
-    queryKey: ['financial_goals', userId],
+    queryKey: ['metas_financieras', userId],
     queryFn: () => fetchFinancialGoals(userId),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutos
@@ -40,14 +40,14 @@ const addFinancialGoal = async (goalData) => {
   // Asegurar valores por defecto si no se proveen
   const goalPayload = {
     ...goalData,
-    user_id: user.id,
-    current_amount: goalData.current_amount || 0, // Iniciar en 0 si no se especifica
-    status: goalData.status || 'active', // Iniciar como activa
-    // target_date puede ser null/undefined si es opcional en el form
+    usuario_id: user.id,
+    monto_actual: goalData.monto_actual || 0, // Iniciar en 0 si no se especifica
+    estado: goalData.estado || 'activa', // Iniciar como activa
+    // fecha_objetivo puede ser null/undefined si es opcional en el form
   };
 
   const { data, error } = await supabase
-    .from('financial_goals')
+    .from('metas_financieras')
     .insert([goalPayload])
     .select();
 
@@ -66,7 +66,7 @@ export const useAddFinancialGoal = () => {
   return useMutation({ 
     mutationFn: addFinancialGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financial_goals', userId] });
+      queryClient.invalidateQueries({ queryKey: ['metas_financieras', userId] });
     },
     onError: (error) => {
       console.error('Mutation error adding financial goal:', error);
@@ -75,17 +75,17 @@ export const useAddFinancialGoal = () => {
 };
 
 // --- Update Financial Goal ---
-// Especialmente útil para actualizar current_amount o status
+// Especialmente útil para actualizar monto_actual o estado
 const updateFinancialGoal = async ({ id, ...updateData }) => {
    if (!id) throw new Error('ID de la meta es requerido para actualizar');
   
    // Aquí podríamos querer lógica adicional, por ejemplo, si se actualiza
-   // current_amount, recalcular el status basado en target_amount?
+   // monto_actual, recalcular el estado basado en monto_objetivo?
    // Por ahora, actualizamos directamente lo que se pasa.
-   // El trigger en DB ya maneja el cambio a 'completed' si current >= target.
+   // El trigger en DB ya maneja el cambio a 'completada' si monto_actual >= monto_objetivo.
 
    const { data, error } = await supabase
-    .from('financial_goals')
+    .from('metas_financieras')
     .update(updateData)
     .eq('id', id)
     .select();
@@ -105,7 +105,7 @@ export const useUpdateFinancialGoal = () => {
   return useMutation({
     mutationFn: updateFinancialGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financial_goals', userId] });
+      queryClient.invalidateQueries({ queryKey: ['metas_financieras', userId] });
     },
      onError: (error) => {
       console.error('Mutation error updating financial goal:', error);
@@ -118,7 +118,7 @@ const deleteFinancialGoal = async (id) => {
   if (!id) throw new Error('ID de la meta es requerido para eliminar');
 
   const { error } = await supabase
-    .from('financial_goals')
+    .from('metas_financieras')
     .delete()
     .eq('id', id);
 
@@ -137,7 +137,7 @@ export const useDeleteFinancialGoal = () => {
   return useMutation({
     mutationFn: deleteFinancialGoal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financial_goals', userId] });
+      queryClient.invalidateQueries({ queryKey: ['metas_financieras', userId] });
     },
      onError: (error) => {
       console.error('Mutation error deleting financial goal:', error);

@@ -12,6 +12,8 @@ import CommunityStatsSection from '../components/home/CommunityStatsSection';
 import CtaSection from '../components/home/CtaSection';
 import Footer from '../components/home/Footer';
 
+
+
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false);
 

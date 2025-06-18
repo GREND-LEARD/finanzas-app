@@ -4,12 +4,12 @@ import { supabase } from '../supabase/client';
 // Hook para obtener todas las categorías
 export function useCategories() {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ['categorias'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('categories')
+        .from('categorias')
         .select('*')
-        .order('name');
+        .order('nombre');
         
       if (error) throw error;
       return data;
@@ -24,7 +24,7 @@ export function useAddCategory() {
   return useMutation({
     mutationFn: async (category) => {
       const { data, error } = await supabase
-        .from('categories')
+        .from('categorias')
         .insert([category])
         .select();
         
@@ -32,7 +32,7 @@ export function useAddCategory() {
       return data[0];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['categorias']);
     },
   });
 }
@@ -44,7 +44,7 @@ export function useUpdateCategory() {
   return useMutation({
     mutationFn: async ({ id, ...updates }) => {
       const { data, error } = await supabase
-        .from('categories')
+        .from('categorias')
         .update(updates)
         .eq('id', id)
         .select();
@@ -53,7 +53,7 @@ export function useUpdateCategory() {
       return data[0];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['categorias']);
     },
   });
 }
@@ -65,7 +65,7 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: async (id) => {
       const { error } = await supabase
-        .from('categories')
+        .from('categorias')
         .delete()
         .eq('id', id);
         
@@ -73,7 +73,7 @@ export function useDeleteCategory() {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['categorias']);
     },
   });
 } 
